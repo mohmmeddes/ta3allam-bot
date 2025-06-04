@@ -52,9 +52,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @app.route(f"/{TELEGRAM_TOKEN}", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
+    asyncio.run(app_bot.process_update(update))
+    return "ok", 200
 
-  
-return "ok", 200
 
     
 @app.route('/')
