@@ -1,4 +1,3 @@
-
 import os
 from flask import Flask, request
 from telegram import Update, Bot
@@ -22,7 +21,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def generate_response(prompt):
     try:
         response = openai.ChatCompletion.create(
-            model="openai/gpt-4-turbo",
+            model="mistralai/mistral-7b-instruct",
             messages=[
                 {"role": "system", "content": "أنت مساعد ذكي تتحدث العربية وترد بأسلوب واضح وبسيط."},
                 {"role": "user", "content": prompt}
