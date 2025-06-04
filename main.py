@@ -4,64 +4,69 @@ from telegram import Update, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 import openai
 import asyncio
+from threading import Thread
 
+# إعداد المتغيرات
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-WEBHOOK_URL = "https://ta3allam-bot.onrender.com"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-openai.api_key = OPENROUTER_API_KEY
-openai.api_base = "https://openrouter.ai/api/v1"
+# إعداد OpenAI الرسمي
+openai.api_key = OPENAI_API_KEY
+openai.api_base = "https://api.openai.com/v1"
 
-app = Flask(__name__)
-bot = Bot(token=TELEGRAM_TOKEN)
+# إعداد Flask
+flask_app = Flask(__name__)
 
+@flask_app.route('/')
+def index():
+    return '''
+    <meta charset="UTF-8">
+    <h2>بوت تعلم شغّال ✅</h2>
+    <p>تم صنعه بواسطة <strong>محمد</strong> - سناب: <strong>im7des</strong></p>
+    <p>جرّب البوت على <a href="https://t.me/T3llm_bot">تليجرام</a></p>
+    '''
+
+# رسالة ترحيب أولى
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("مرحبًا بك في بوت تعلّم 🤖! اسأل أي شيء، وأنا أجاوبك بذكاء.")
+    await update.message.reply_text("مرحبًا بك في بوت تعلّم 🤖! اسأل أي شيء، وأنا أجاوبك بذكاء. 
+تم تطويري بواسطة محمد - سنابه: im7des")
 
-def generate_response(prompt):
+# توليد رد باستخدام OpenAI
+def generate_reply(prompt):
     try:
         response = openai.ChatCompletion.create(
-            model="mistralai/mistral-7b-instruct",
+            model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "أنت مساعد ذكي تتحدث العربية وترد بأسلوب واضح وبسيط."},
+                {"role": "system", "content": "أنت مساعد ذكي وسريع، تتحدث العربية بطلاقة وترد بأدب وسرعة."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=600,
-            temperature=0.7
+            temperature=0.7,
+            max_tokens=400
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print("❌ Error:", e)
+        print("[خطأ GPT]:", e)
         return "فيه مشكلة مؤقتة، جرب بعد شوي."
 
+# التعامل مع أي رسالة نصية
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = update.message.text
-    reply = await asyncio.to_thread(generate_response, user_text)
+    user_message = update.message.text
+    reply = await asyncio.to_thread(generate_reply, user_message)
     await update.message.reply_text(reply)
 
-@app.route(f"/{TELEGRAM_TOKEN}", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
+# تشغيل Flask والبوت معاً
+def run():
+    flask_app.run(host="0.0.0.0", port=3000)
 
-    async def process():
-        await app_bot.initialize()
-        await app_bot.process_update(update)
-        await app_bot.shutdown()
+def main():
+    Thread(target=run).start()
+    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
-    asyncio.run(process())
-    return "ok"
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-@app.route('/')
-def home():
-    return 'بوت تعلم شغال ✅'
-
-async def set_webhook():
-    await bot.set_webhook(f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}")
+    print("✅ البوت يعمل الآن.")
+    app.run_polling()
 
 if __name__ == "__main__":
-    app_bot = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    app_bot.add_handler(CommandHandler("start", start))
-    app_bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    asyncio.run(set_webhook())
-    app.run(host="0.0.0.0", port=3000)
+    main()
