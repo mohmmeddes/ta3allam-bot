@@ -60,7 +60,7 @@ def home():
     return 'بوت تعلّم شغال ✅'
 
 # تعيين الويب هوك
-WEBHOOK_URL = "https://ta3allam-bot-1.onrender.com
+WEBHOOK_URL = "https://ta3allam-bot-1.onrender.com"
 async def set_webhook():
     await bot.set_webhook(f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}")
 
