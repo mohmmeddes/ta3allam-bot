@@ -53,12 +53,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
 
-    async def process():
-        await app_bot.initialize()
-        await app_bot.process_update(update)
-
-    asyncio.run(process())
-    return "ok"
+  
 
     
 @app.route('/')
@@ -70,10 +65,17 @@ WEBHOOK_URL = "https://ta3allam-bot-1.onrender.com"
 async def set_webhook():
     await bot.set_webhook(f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}")
 
-if __name__ == "__main__":
+
+  if __name__ == "__main__":
     app_bot = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+
+    asyncio.run(app_bot.initialize())
+
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     asyncio.run(set_webhook())
+
     app.run(host="0.0.0.0", port=3000)
+
+  
