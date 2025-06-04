@@ -60,13 +60,12 @@ def webhook():
 def home():
     return 'بوت تعلّم شغال ✅'
 
-# تعيين الويب هوك
 WEBHOOK_URL = "https://ta3allam-bot-1.onrender.com"
+
 async def set_webhook():
     await bot.set_webhook(f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}")
 
-
-  if __name__ == "__main__":
+if __name__ == "__main__":
     app_bot = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
 
     asyncio.run(app_bot.initialize())
@@ -77,5 +76,3 @@ async def set_webhook():
     asyncio.run(set_webhook())
 
     app.run(host="0.0.0.0", port=3000)
-
-  
