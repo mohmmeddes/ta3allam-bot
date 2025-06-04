@@ -7,87 +7,54 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 import openai
 import asyncio
 
+# مفاتيح البيئة
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+# إعداد OpenAI
 openai.api_key = OPENAI_API_KEY
 
+# Flask لتشغيل السيرفر
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return """
-    <!DOCTYPE html>
-    <html lang='ar' dir='rtl'>
-    <head>
-        <meta charset='UTF-8'>
-        <title>🤖 بوت تعلّم</title>
-        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-        <style>
-            body { font-family: Tahoma, sans-serif; background: #f2f2f2; color: #333; margin: 0; padding: 0; }
-            .container { max-width: 600px; margin: 80px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 0 20px rgba(0,0,0,0.1); text-align: center; }
-            h1 { color: #2e86de; }
-            p { font-size: 18px; line-height: 1.8; }
-            .btn { display: inline-block; margin-top: 25px; padding: 12px 24px; background-color: #2e86de; color: white; font-size: 18px; border-radius: 6px; text-decoration: none; }
-            .btn:hover { background-color: #1c5f9c; }
-            .footer { margin-top: 40px; font-size: 14px; color: #888; }
-        </style>
-    </head>
-    <body>
-        <div class='container'>
-            <h1>🤖 بوت تعلّم</h1>
-            <p>مساعد ذكي متفاعل وفهمان، يشتغل 24 ساعة على الخاص أو في القروبات.</p>
-            <p>اسأله، اطلب منه، خله يساعدك في الوقت أو الشرح أو حتى الترفيه.</p>
-            <p><strong>صنعه محمد (سنابه: <a href='https://www.snapchat.com/add/im7des' target='_blank'>im7des</a>)</strong></p>
-            <a class='btn' href='https://t.me/T3llm_bot' target='_blank'>🚀 جرّب البوت الآن</a>
-            <div class='footer'>© 2025 جميع الحقوق محفوظة</div>
-        </div>
-    </body>
-    </html>
-    """
+    return open("index.html", encoding="utf-8").read()
 
-def run_flask():
+def run():
     app.run(host="0.0.0.0", port=3000)
 
+# الرد على /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    welcome_message = (
-        "مرحبًا بك في 🤖 *بوت تعلّم*!
-"
-        "أنا مساعد ذكي أجاوبك بسرعة وفهم، وأسلوبي طبيعي.
-"
-        "صنعني محمد (سنابه: @im7des).
-"
-        "اكتب لي أي شيء يخطر ببالك!"
-    )
-    await update.message.reply_text(welcome_message, parse_mode="Markdown")
+    await update.message.reply_text("أهلًا بك في بوت تعلّم! اسألني أي شيء، وأنا أساعدك 🤖")
 
-def ask_gpt(prompt):
+# الرد التلقائي باستخدام GPT
+def chat_reply(prompt):
     try:
-        response = openai.ChatCompletion.create(
+        res = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "أنت مساعد ذكي وودود تتحدث بالعربية وتفهم السياق وترد بشكل طبيعي."},
+                {"role": "system", "content": "أنت مساعد ذكي تتحدث العربية بطلاقة."},
                 {"role": "user", "content": prompt}
-            ],
-            max_tokens=600,
-            temperature=0.7
+            ]
         )
-        return response.choices[0].message.content.strip()
+        return res.choices[0].message.content.strip()
     except Exception as e:
-        print("[❌] خطأ في OpenAI:", e)
-        return "فيه مشكلة مؤقتة. حاول مرة ثانية."
+        print("[❌]", e)
+        return "صار خطأ، جرب مرة ثانية."
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
-    reply = await asyncio.to_thread(ask_gpt, user_message)
+# التعامل مع الرسائل النصية
+async def handle_msg(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_msg = update.message.text
+    reply = await asyncio.to_thread(chat_reply, user_msg)
     await update.message.reply_text(reply)
 
+# تشغيل البوت
 def main():
-    Thread(target=run_flask).start()
+    Thread(target=run).start()
     app_bot = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app_bot.add_handler(CommandHandler("start", start))
-    app_bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    print("✅ البوت شغّال الآن 24/7")
+    app_bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_msg))
     app_bot.run_polling()
 
 if __name__ == "__main__":
