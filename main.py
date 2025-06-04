@@ -54,6 +54,7 @@ def webhook():
     update = Update.de_json(request.get_json(force=True), bot)
 
   
+return "ok", 200
 
     
 @app.route('/')
