@@ -30,10 +30,12 @@ def webhook():
 def home():
     return render_template("index.html")
 
-WEBHOOK_URL = "https://ta3allam-bot-1.onrender.com"
+
 
 async def set_webhook():
-   await app_bot.set_webhook(f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}")
+    bot = app_bot.bot
+    await bot.set_webhook(f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}")
+
 
 
 if __name__ == "__main__":
