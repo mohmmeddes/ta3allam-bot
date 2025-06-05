@@ -1,53 +1,65 @@
-from flask import Flask, request, render_template
-import asyncio
+
 import os
-
+from flask import Flask
+from threading import Thread
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+import openai
+import asyncio
 
+# مفاتيح البيئة
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+
+# إعداد OpenRouter مع GPT-4 Turbo
+openai.api_key = OPENROUTER_API_KEY
+openai.api_base = "https://openrouter.ai/api/v1"
+
+# سيرفر Flask لتشغيل Replit + UptimeRobot
 app = Flask(__name__)
 
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-WEBHOOK_URL = "https://ta3allam-bot-1.onrender.com"
+@app.route('/')
+def home():
+    return open("index.html", "r", encoding="utf-8").read()
 
+def run_flask():
+    app.run(host="0.0.0.0", port=3000, debug=False)
 
-# أمر /start
+# /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    welcome = "👋 أهلًا في بوت تعلّم! أنا هنا أساعدك بكل ذكاء، اسألني اللي تبي ✨"
-    await update.message.reply_text(welcome)
+    await update.message.reply_text("👋 أهلًا بك في بوت تعلّم! اسألني أي شيء بالعربي.")
+
+# رد من GPT-4 Turbo
+def generate_response(prompt):
+    try:
+        response = openai.ChatCompletion.create(
+            model="openai/gpt-4-turbo",
+            messages=[
+                {"role": "system", "content": "أنت مساعد ذكي تتحدث العربية بطلاقة وتفهم نبرة المستخدم وترد بسرعة ووضوح."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=600,
+            temperature=0.7,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print("[❌] خطأ:", e)
+        return "فيه مشكلة مؤقتة، جرب بعد شوي."
 
 # الرد على أي رسالة
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    intro = "🤖 مرحبًا بك في بوت تعلّم! اسأل أي شيء، وأنا أجتهد بإذن الله أساعدك. البوت من تطوير محمد - سنابي: im7des 👨🏻‍💻"
-    await update.message.reply_text(intro)
-
     user_text = update.message.text
-    reply = f"👀 أنت قلت: {user_text}"
+    reply = await asyncio.to_thread(generate_response, user_text)
     await update.message.reply_text(reply)
 
-# نقطة استقبال Webhook من تليجرام
-@app.route(f"/{TELEGRAM_TOKEN}", methods=["POST"])
-def webhook():
-    from telegram import Update
-    update = Update.de_json(request.get_json(force=True), app.bot)
-    asyncio.run(app.bot.process_update(update))
-    return "ok", 200
-
-# صفحة الترحيب
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-# المهمة الرئيسية
+# تشغيل البوت والسيرفر
 async def main():
-    app.bot = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-
-    await app.bot.initialize()
-    app.bot.add_handler(CommandHandler("start", start))
-    app.bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    await app.bot.set_webhook(f"{WEBHOOK_URL}/{TELEGRAM_TOKEN}")
-
-    app.run(host="0.0.0.0", port=3000)
+    Thread(target=run_flask).start()
+    app_bot = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    app_bot.add_handler(CommandHandler("start", start))
+    app_bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    print("✅ البوت يعمل الآن...")
+    await app_bot.run_polling()
 
 if __name__ == "__main__":
     asyncio.run(main())
