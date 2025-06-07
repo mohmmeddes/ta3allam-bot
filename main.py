@@ -38,4 +38,7 @@ def generate_response(prompt):
         return "فيه مشكلة مؤقتة، حاول بعد شوي."
 
 # التعامل مع الرسائل النصية
-async def handle_message(update): 
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_text = update.message.text
+    reply = await asyncio.to_thread(generate_response, user_text)
+    await update.message.reply_text(reply)
