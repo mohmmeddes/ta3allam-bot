@@ -5,31 +5,30 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import openai
 import asyncio
-import nest_asyncio
 
-# إعداد المفاتيح من البيئة
+# مفاتيح البيئة
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-# إعداد OpenRouter مع Claude 3 Haiku
+# إعداد API
 openai.api_key = OPENROUTER_API_KEY
 openai.api_base = "https://openrouter.ai/api/v1"
 
-# إعداد صفحة الويب (Flask)
+# إعداد Flask
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return open("index.html", "r", encoding="utf-8").read()
+    return "✅ البوت شغّال. Flask صفحة أساسية"
 
 def run_flask():
     app.run(host="0.0.0.0", port=3000, debug=False)
 
-# أوامر تليجرام
+# أمر /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("👋 أهلًا بك في بوت تعلّم! اسألني أي شيء بالعربي.")
 
-# الرد من Claude 3 Haiku
+# الرد من الذكاء الاصطناعي
 def generate_response(prompt):
     try:
         response = openai.ChatCompletion.create(
@@ -41,25 +40,23 @@ def generate_response(prompt):
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print("[❌] Error:", e)
-        return "فيه مشكلة مؤقتة، جرب بعد شوي."
+        print("[❌] خطأ:", str(e))  # تتبع مباشر
+        return f"⚠️ خطأ تقني داخلي: {str(e)}"
 
-# رد على أي رسالة
+# الرد على أي رسالة
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     reply = await asyncio.to_thread(generate_response, user_text)
     await update.message.reply_text(reply)
 
 # تشغيل البوت والسيرفر
-async def run_bot():
+async def main():
+    Thread(target=run_flask).start()
     app_bot = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    print("✅ البوت شغال...")
+    print("✅ البوت يعمل الآن...")
     await app_bot.run_polling()
 
-# نقطة التشغيل
 if __name__ == "__main__":
-    Thread(target=run_flask).start()
-    nest_asyncio.apply()
-    asyncio.get_event_loop().run_until_complete(run_bot())
+    asyncio.run(main())
