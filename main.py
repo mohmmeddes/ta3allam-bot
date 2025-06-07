@@ -1,66 +1,50 @@
 import os
 import openai
 import asyncio
-from flask import Flask
-from threading import Thread
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram import Update, Chat
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-# إعداد المفاتيح
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
+# المفاتيح
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-# إعداد Claude 3 Haiku عبر OpenRouter
+# إعداد OpenRouter
 openai.api_key = OPENROUTER_API_KEY
 openai.api_base = "https://openrouter.ai/api/v1"
 
-# إعداد صفحة الويب
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return open("index.html", "r", encoding="utf-8").read()
-
-def run_web():
-    app.run(host="0.0.0.0", port=3000)
-
-# أوامر البوت
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 أهلًا بك في بوت تعلّم! اسألني أي شيء بالعربي.")
-
-# توليد الرد من Claude
+# رد تلقائي
 def generate_response(prompt):
+    print("[🔍] أرسل له:", prompt)
     try:
         response = openai.ChatCompletion.create(
             model="anthropic/claude-3-haiku",
             messages=[
-                {"role": "system", "content": "أنت مساعد ذكي بالعربية، تجاوب بسرعة وتفهم السياق."},
+                {"role": "system", "content": "أنت مساعد ذكي تفهم العربية وترد بسرعة."},
                 {"role": "user", "content": prompt}
             ]
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print("[❌]", e)
-        return "فيه مشكلة مؤقتة، جرّب بعد شوي."
+        print("[❌] Error:", e)
+        return "فيه مشكلة مؤقتة، جرب بعد شوي."
 
-# التعامل مع الرسائل
+# رسالة /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("👋 أهلًا بك! اسألني أي سؤال.")
+
+# رد على أي رسالة
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     reply = await asyncio.to_thread(generate_response, user_text)
     await update.message.reply_text(reply)
 
-# تشغيل البوت
+# تشغيل البوت فقط (بدون Flask الآن)
 async def main():
-    bot = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    bot.add_handler(CommandHandler("start", start))
-    bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    await bot.initialize()
-    await bot.start()
-    await bot.updater.start_polling()
-    await bot.updater.idle()
+    app_bot = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    app_bot.add_handler(CommandHandler("start", start))
+    app_bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    print("✅ البوت شغال... جرب تكتب له")
+    await app_bot.run_polling()
 
-# تشغيل الواجهة + البوت
 if __name__ == "__main__":
-    Thread(target=run_web).start()
-    loop = asyncio.get_event_loop()
-    loop.create_task(main())
+    asyncio.run(main())
