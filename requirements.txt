@@ -2,3 +2,4 @@ python-telegram-bot==20.3
 Flask==2.3.3
 openai==1.14.3
 nest-asyncio
+python test.py
