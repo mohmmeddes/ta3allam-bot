@@ -1,80 +1,65 @@
 import os
-import asyncio
-import logging
 from flask import Flask
 from threading import Thread
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler,
-    MessageHandler, ContextTypes, filters
-)
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 import openai
+import asyncio
+import nest_asyncio
 
-# تفعيل اللوقات
-logging.basicConfig(
-    format='[%(asctime)s] - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-
-# مفاتيح التشغيل
+# إعداد المفاتيح من البيئة
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
+# إعداد OpenRouter مع Claude 3 Haiku
 openai.api_key = OPENROUTER_API_KEY
 openai.api_base = "https://openrouter.ai/api/v1"
 
-# إعداد Flask
+# إعداد صفحة الويب (Flask)
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "✅ البوت يعمل! صفحة Flask الأساسية."
+    return open("index.html", "r", encoding="utf-8").read()
 
 def run_flask():
-    logging.info("🚀 تشغيل Flask على المنفذ 3000...")
-    app.run(host="0.0.0.0", port=3000)
+    app.run(host="0.0.0.0", port=3000, debug=False)
 
-# أمر /start
+# أوامر تليجرام
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logging.info("📩 تم استقبال أمر /start")
-    await update.message.reply_text("👋 أهلًا بك! اسألني أي شيء.")
+    await update.message.reply_text("👋 أهلًا بك في بوت تعلّم! اسألني أي شيء بالعربي.")
 
-# الذكاء الاصطناعي
+# الرد من Claude 3 Haiku
 def generate_response(prompt):
-    logging.info(f"🧠 يتم إرسال السؤال إلى OpenRouter: {prompt}")
     try:
         response = openai.ChatCompletion.create(
             model="anthropic/claude-3-haiku",
             messages=[
-                {"role": "system", "content": "أنت مساعد ذكي بالعربية وتفهم سياق الكلام وترد بوضوح."},
+                {"role": "system", "content": "أنت مساعد ذكي بالعربية، تجاوب بسرعة وبوضوح وتفهم سياق الكلام."},
                 {"role": "user", "content": prompt}
             ]
         )
-        reply = response.choices[0].message.content.strip()
-        logging.info(f"✅ تم استلام الرد: {reply}")
-        return reply
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        logging.error(f"❌ خطأ في OpenRouter: {e}")
-        return "⚠️ حصل خطأ أثناء توليد الرد. جرب مرة ثانية."
+        print("[❌] Error:", e)
+        return "فيه مشكلة مؤقتة، جرب بعد شوي."
 
-# استقبال الرسائل
+# رد على أي رسالة
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
-    logging.info(f"📥 رسالة جديدة: {user_text}")
     reply = await asyncio.to_thread(generate_response, user_text)
     await update.message.reply_text(reply)
-    logging.info("📤 تم إرسال الرد بنجاح.")
 
-# تشغيل البوت
+# تشغيل البوت والسيرفر
 async def run_bot():
-    logging.info("🤖 بدء تشغيل البوت...")
     app_bot = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app_bot.add_handler(CommandHandler("start", start))
     app_bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    logging.info("✅ البوت يعمل الآن عبر polling...")
+    print("✅ البوت شغال...")
     await app_bot.run_polling()
 
-# التشغيل الكامل
+# نقطة التشغيل
 if __name__ == "__main__":
     Thread(target=run_flask).start()
-    asyncio.run(run_bot())
+    nest_asyncio.apply()
+    asyncio.get_event_loop().run_until_complete(run_bot())
