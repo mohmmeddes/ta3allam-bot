@@ -1,4 +1,3 @@
-
 import os
 from flask import Flask
 from threading import Thread
@@ -43,23 +42,3 @@ def generate_response(prompt):
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print("[❌] خطأ:", e)
-        return "فيه مشكلة مؤقتة، جرب بعد شوي."
-
-# الرد على أي رسالة
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = update.message.text
-    reply = await asyncio.to_thread(generate_response, user_text)
-    await update.message.reply_text(reply)
-
-# تشغيل البوت والسيرفر
-async def main():
-    Thread(target=run_flask).start()
-    app_bot = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    app_bot.add_handler(CommandHandler("start", start))
-    app_bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    print("✅ البوت يعمل الآن...")
-    await app_bot.run_polling()
-
-if __name__ == "__main__":
-    asyncio.run(main())
