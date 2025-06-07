@@ -1,7 +1,3 @@
-services:
-  - type: worker
-    name: ta3allam-bot
-    env: python
-    plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python bot.py"
+git add render.yaml
+git commit -m "تشغيل البوت كـ Worker"
+git push origin main
