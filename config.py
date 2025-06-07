@@ -1,4 +1,4 @@
 # config.py
 # ✅ تم تركيب التوكن الجديد بنجاح
 
-TELEGRAM_BOT_TOKEN = "7718520666:AAGMgNg5eBHPl1tA_d61CNxizRBOVQxAVpE"
+TOKEN = "7718520666:AAFZ4Im0AdvXmlKs0ZG9ai19QiohKMjYl10"
