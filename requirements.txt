@@ -1,3 +1,2 @@
-transformers
-torch
 python-telegram-bot==20.3
+requests
