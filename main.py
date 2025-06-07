@@ -38,4 +38,4 @@ def generate_response(prompt):
         return "فيه مشكلة مؤقتة، حاول بعد شوي."
 
 # التعامل مع الرسائل النصية
-async def handle_message(update: 
+async def handle_message(update): 
