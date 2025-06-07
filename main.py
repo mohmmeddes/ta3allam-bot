@@ -6,29 +6,29 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 import openai
 import asyncio
 
-# مفاتيح البيئة
+# إعداد المفاتيح من البيئة
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
-# إعداد API
+# إعداد OpenRouter مع Claude 3 Haiku
 openai.api_key = OPENROUTER_API_KEY
 openai.api_base = "https://openrouter.ai/api/v1"
 
-# إعداد Flask
+# إعداد صفحة الويب (Flask)
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "✅ البوت شغّال. Flask صفحة أساسية"
+    return "<p>✅ البوت شغال. هذه صفحة Flask الأساسية.</p>"
 
 def run_flask():
-    app.run(host="0.0.0.0", port=3000, debug=False)
+    app.run(host="0.0.0.0", port=3000)
 
-# أمر /start
+# أمر البداية /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("👋 أهلًا بك في بوت تعلّم! اسألني أي شيء بالعربي.")
 
-# الرد من الذكاء الاصطناعي
+# الرد من Claude مع تتبع الأخطاء
 def generate_response(prompt):
     try:
         response = openai.ChatCompletion.create(
@@ -38,14 +38,16 @@ def generate_response(prompt):
                 {"role": "user", "content": prompt}
             ]
         )
+        print("[✅] الرد الجاهز:", response)
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print("[❌] خطأ:", str(e))  # تتبع مباشر
-        return f"⚠️ خطأ تقني داخلي: {str(e)}"
+        print("[❌] فشل الذكاء الاصطناعي:", e)
+        return f"⚠️ حصل خطأ: {str(e)}"
 
 # الرد على أي رسالة
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
+    print(f"[📥] رسالة من المستخدم: {user_text}")
     reply = await asyncio.to_thread(generate_response, user_text)
     await update.message.reply_text(reply)
 
